@@ -1,35 +1,31 @@
-# Use a stable version instead of a beta (b1) for reliability
-FROM python:3.11-slim-buster
+# 1. Use Bookworm (Debian 12) - the most stable and current version
+FROM python:3.11-slim-bookworm
 
-# set work directory
 WORKDIR /app
 
-# Install system dependencies
-# Using slim-buster reduces image size significantly
+# 2. Fix the apt-get line
+# In newer Debian versions, 'dnsutils' is often a virtual package for 'bind9-host' or 'knot-dnsutils'
+# Using 'bind9-host' or 'dnsutils' on Bookworm is much more stable.
 RUN apt-get update && apt-get install --no-install-recommends -y \
-    dnsutils \
+    bind9-host \
     libpq-dev \
     gcc \
     python3-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Set environment variables using the correct key=value syntax
-# This fixes the "LegacyKeyValueFormat" warnings from your logs
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Upgrade pip and install Python dependencies
+# 3. Standardize dependency installation
 RUN python -m pip install --no-cache-dir --upgrade pip
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project files
 COPY . .
 
-# Expose the port
 EXPOSE 8000
 
-# Final execution
-# We move migrations to the CMD or an entrypoint so they run when the container starts
-CMD python manage.py migrate && gunicorn --bind 0.0.0.0:8000 --workers 6 pygoat.wsgi
+# 4. Use the JSON array format for CMD to satisfy the warning in your 3rd image
+# This also combines the migration and server start safely
+CMD ["sh", "-c", "python manage.py migrate && gunicorn --bind 0.0.0.0:8000 --workers 6 pygoat.wsgi"]
