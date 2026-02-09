@@ -21,7 +21,7 @@ jobs:
 
       - name: Run Bandit Scan
         # Added || true to ensure artifact uploads even if issues are found
-        run: bandit -ll -ii -r . -f json -o bandit-report.json || true
+        run: bandit -ll -ii -r . -f json -o bandit-report.json
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
